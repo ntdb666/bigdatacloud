@@ -1,0 +1,29 @@
+localhost:3306/cloudlocaltest
+pwd:7355608
+
+1. 基础信息字段（固定长度/短文本）这些字段通常不会报错，适合用常规类型。字段名含义推荐数据类型理由name用户昵称VARCHAR(255)一般不会超过 255 个字符。gender性别TINYINT值为 1, 0, -1，数字类型最快。user_type用户类型VARCHAR(50)如 "people", "organization"。url_token个人主页 IDVARCHAR(255)唯一的标识符。avatar_url头像地址TEXTURL 有时带参数会很长。2. 统计数值字段（纯数字）字段名含义推荐数据类型理由follower_count粉丝数INT 或 BIGINT张佳玮这种大 V 粉丝过百万，用 INT 足够。voteup_count获赞数BIGINT赞数可能过千万，BIGINT 更保险。thanked_count感谢数INT正常数值。favorited_count收藏数INT正常数值。3. 复杂/超长文本字段（报错重灾区）这些是你之前报错的根源，因为它们包含嵌套的 JSON 字符串或长篇大论。字段名含义推荐数据类型理由headline一句话介绍TEXT有些人的一句话其实很长。description个人详细描述LONGTEXT包含 HTML 标签或超长自我介绍。locations所在地LONGTEXT高危。数组格式，且包含城市的百度百科式介绍。business行业信息TEXT包含 ID、名称等嵌套信息。educations教育经历LONGTEXT高危。数组格式，包含学校、专业的详细介绍。employments职业经历LONGTEXT高危。包含公司、职位的详细描述。
+CREATE TABLE zhihu_data (
+    -- 基础信息字段
+    name VARCHAR(255) COMMENT '用户昵称',
+    url_token VARCHAR(255) COMMENT '个人主页ID/唯一标识',
+    gender TINYINT COMMENT '性别: 1男, 0女, -1未知',
+    user_type VARCHAR(50) COMMENT '用户类型: people/organization',
+    avatar_url TEXT COMMENT '头像链接',
+    headline TEXT COMMENT '一句话介绍',
+    
+    -- 统计数值字段 (使用 BIGINT 预防顶级大V数据溢出)
+    answer_count INT DEFAULT 0 COMMENT '回答数',
+    articles_count INT DEFAULT 0 COMMENT '文章数',
+    follower_count BIGINT DEFAULT 0 COMMENT '粉丝数',
+    following_count INT DEFAULT 0 COMMENT '关注数',
+    voteup_count BIGINT DEFAULT 0 COMMENT '获赞数',
+    thanked_count BIGINT DEFAULT 0 COMMENT '感谢数',
+    favorited_count BIGINT DEFAULT 0 COMMENT '被收藏数',
+    
+    -- 复杂嵌套/长文本字段 (报错重灾区，全部设为 LONGTEXT)
+    description LONGTEXT COMMENT '个人详细描述(含HTML)',
+    business LONGTEXT COMMENT '行业/业务信息JSON',
+    locations LONGTEXT COMMENT '所在地详细信息JSON(含城市百科简介)',
+    educations LONGTEXT COMMENT '教育经历JSON(含学校百科简介)',
+    employments LONGTEXT COMMENT '职业经历JSON(含公司百科简介)'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
