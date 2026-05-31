@@ -465,10 +465,15 @@
     <includeNulls>N</includeNulls>
     <rownum_field/>
     <file>
-      <name>C:\Users\Pedro\Documents\Codes\大数据云计算\items.json</name>
+      <name>C:\Users\Pedro\Documents\Codes\bigdatacloud\items.json</name>
       <filemask/>
       <exclude_filemask/>
       <file_required>Y</file_required>
+      <include_subfolders>N</include_subfolders>
+      <name/>
+      <filemask/>
+      <exclude_filemask/>
+      <file_required>N</file_required>
       <include_subfolders>N</include_subfolders>
     </file>
     <fields>
