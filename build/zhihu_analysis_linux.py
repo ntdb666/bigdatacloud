@@ -135,11 +135,16 @@ def main():
         )
 
         # --- (4) 姓氏词云图 ---
+        # 提取姓名第一个字作为姓氏，并过滤只保留中文字符
         surname_counts = df.filter(F.col("name").isNotNull()) \
             .withColumn("surname", F.substring(F.col("name"), 1, 1)) \
-            .filter("surname rlike '^[\\u4e00-\\u9fa5]+$'") \
+            .filter(F.col("surname").rlike("^[一-龥]$")) \
             .groupBy("surname").count().orderBy(F.desc("count")).limit(80).collect()
-        
+
+        print(f"✅ 姓氏词云数据获取成功！共 {len(surname_counts)} 个姓氏。")
+        if surname_counts:
+            print(f"   前5个高频姓氏: {[(row['surname'], row['count']) for row in surname_counts[:5]]}")
+
         wordcloud_surnames = (
             WordCloud(init_opts=opts.InitOpts(width="1000px", height="600px"))
             .add("", [(row['surname'], row['count']) for row in surname_counts], word_size_range=[25, 120], shape="circle")
