@@ -1,66 +1,60 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import os
-import re
 import sys
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyecharts.charts import Bar, Pie, WordCloud, Page
 from pyecharts import options as opts
-from pyecharts.globals import SymbolType
 from pyecharts.commons.utils import JsCode
 
 def parse_mysql_info(file_path):
     """解析 mysqlinfo.txt 获取数据库连接信息"""
     info = {}
     if not os.path.exists(file_path):
-        raise FileNotFoundError(f"找不到配置文件: {file_path}")
+        raise FileNotFoundError(f"找不到配置文件: {file_path} ! 请确保文件存在。")
         
     with open(file_path, 'r', encoding='utf-8') as f:
         lines = [l.strip() for l in f.readlines() if l.strip()]
-        # 第一行通常是 localhost:3306/db_name
         db_url_part = lines[0]
+        # Linux生产环境下通常建议配置好SSL，但如果开发环境没有配置，保留该选项
         info['url'] = f"jdbc:mysql://{db_url_part}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
-        # 寻找密码行 pid:xxxx
         for line in lines:
             if 'pwd:' in line:
                 info['password'] = line.split('pwd:')[1].strip()
-    # 默认用户名 root
     info['user'] = 'root' 
     return info
 
 def main():
-    # 1. 基础路径自动适配 (核心修复)
-    # 获取脚本所在目录 (c:\...\build)
+    # 1. 动态获取 Linux 各级目录
+    # 在 Linux 服务器中运行，通过标准 pathlib/os 动态获取
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # 父目录即项目根目录 (c:\...\大数据云计算)
     base_dir = os.path.dirname(script_dir) 
     
     config_path = os.path.join(script_dir, "mysqlinfo.txt")
     output_html = os.path.join(base_dir, "zhihu_report.html")
-    # 检测项目根目录下的本地驱动
     local_jar = os.path.join(base_dir, "mysql-connector-java-5.1.8-bin.jar")
 
     print("\n" + "="*50)
-    print("=== PySpark 启动诊断模式 ===")
+    print("=== PySpark Linux 部署模式 ===")
     print(f"脚本执行路径: {sys.argv[0]}")
     print(f"配置文件路径: {config_path}")
     print(f"预计生成报告: {output_html}")
-    print(f"本地驱动检测: {'[找到] ' + local_jar if os.path.exists(local_jar) else '[未找到] (将尝试从 Maven 下载)'}")
     print("="*50 + "\n")
 
     try:
         db_config = parse_mysql_info(config_path)
 
-        # 启动 Spark Session
-        builder = SparkSession.builder.appName("ZhihuDataAnalysis").master("local[*]")
+        # 【修改】用户要求保留单机模式，通过 python 直接运行
+        builder = SparkSession.builder.appName("ZhihuDataAnalysis_Linux").master("local[*]")
         
-        # 配置驱动
+        # 配置驱动：同样支持本地jar和在线下载机制
         if os.path.exists(local_jar):
             builder = builder.config("spark.driver.extraClassPath", local_jar)
-            # 使用旧版驱动类名 (5.1.x 用这个)
             driver_class = "com.mysql.jdbc.Driver"
         else:
             builder = builder.config("spark.jars.packages", "mysql:mysql-connector-java:8.0.33")
-            # 使用新版驱动类名
             driver_class = "com.mysql.cj.jdbc.Driver"
             
         spark = builder.getOrCreate()
@@ -76,7 +70,6 @@ def main():
             .option("driver", driver_class) \
             .load()
 
-        # 检查数据条数
         row_count = df.count()
         if row_count == 0:
             print("❌ 错误: 成功连上数据库，但数据表 'zhihu_data' 没有任何记录！")
@@ -161,7 +154,7 @@ def main():
         
         print("\n" + "="*50)
         print("🎉 分析圆满完成！")
-        print(f"报告生成成功，请在以下位置寻找：\n👉 {output_html}")
+        print(f"报告生成成功，请在服务器检查以下位置：\n👉 {output_html}")
         print("="*50)
 
     except Exception as e:
